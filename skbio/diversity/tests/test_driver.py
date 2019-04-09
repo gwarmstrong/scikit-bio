@@ -247,6 +247,27 @@ class AlphaDiversityTests(TestCase):
                                  otu_ids=self.oids2)
         assert_series_almost_equal(actual, expected)
 
+    def test_fast_faith_pd_prototype(self):
+        # calling faith_pd through alpha_diversity gives same results as
+        # TODO need to actualy unit test this
+        # calling it directly
+        expected = []
+        for e in self.table1:
+            expected.append(faith_pd(e, tree=self.tree1, otu_ids=self.oids1))
+        expected = pd.Series(expected)
+        actual = alpha_diversity('fast_faith_pd', self.table1, tree=self.tree1,
+                                 otu_ids=self.oids1)
+        assert_series_almost_equal(actual, expected)
+
+        # alt input table and tree
+        expected = []
+        for e in self.table2:
+            expected.append(faith_pd(e, tree=self.tree2, otu_ids=self.oids2))
+        expected = pd.Series(expected)
+        actual = alpha_diversity('faith_pd', self.table2, tree=self.tree2,
+                                 otu_ids=self.oids2)
+        assert_series_almost_equal(actual, expected)
+
     def test_no_ids(self):
         # expected values hand-calculated
         expected = pd.Series([3, 3, 3, 3])

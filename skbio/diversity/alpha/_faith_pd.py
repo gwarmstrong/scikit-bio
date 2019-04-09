@@ -10,11 +10,74 @@ from skbio.util._decorator import experimental
 from skbio.diversity._util import (_validate_counts_vector,
                                    _validate_otu_ids_and_tree,
                                    _vectorize_counts_and_tree)
+import bp
+import numpy as np
 
 
 def _faith_pd(counts_by_node, branch_lengths):
     return (branch_lengths * (counts_by_node > 0)).sum()
 
+def _set_intermediate_score(node_index, score_stack, index_counts, otu_map, bp_tree):
+    """
+    TODO: DOCUMENT
+    """
+    branch_length = bp_tree.length(node_index)
+    # if leaf, return count at leaf
+    if bp_tree.isleaf_(node_index):
+        otu_name = bp_tree.name(node_index)
+        otu_index = otu_map[otu_name]
+        counts = index_counts(otu_index)
+        scores = (counts > 0)*branch_length
+    else:
+        # grabs left child's scores and counts
+        left_child = bp_tree.left_child(node_index)
+        scores, counts = score_stack.pop(left_child)
+        # if there is also a right child, add its counts
+        right_child = bp_tree.right_child(node_index)
+        # this does not account for more than two children
+        if right_child != left_child:
+            right_scores, right_counts = score_stack.pop(right_child)
+            scores += right_scores
+            counts += right_counts
+        scores += (counts > 0)*branch_length 
+    score_stack[node_index] = scores, counts
+    return score_stack
+
+def fast_faith_pd_prototype(counts, otu_ids, tree, validate=True):
+    """
+    TODO: DOCUMENT
+    """
+    counts = np.array(counts)
+    if validate:
+        single_sample = len(counts.shape) == 1
+        if single_sample:
+            counts = _validate_counts_vector(counts)
+            _validate_otu_ids_and_tree(counts, otu_ids, tree)
+        else:
+            _validate_otu_ids_and_tree(counts[0], otu_ids, tree)
+    
+    otu_map = {otu: index for index, otu in enumerate(otu_ids)}
+    bp_tree = bp.from_skbio_treenode(tree)
+    index_counts = ((lambda otu_id: counts[otu_id]) if single_sample 
+            else (lambda otu_id: counts[:, otu_id]))
+    
+    # shear tree? -> yes, because if we pass otu_ids to shear tree,
+    # it should do the proper task
+    # maybe some condition on when to shear? e.g. len(otu_ids) < 0.1 * bp_tree.ntips
+    # a user option to shear could be another option
+    bp_tree = bp_tree.shear(set(otu_ids))
+    
+    num_nodes = len(bp_tree)
+    
+    score_stack = dict()
+    # post order traversal
+    for i in range(1, num_nodes+1):
+        # counts
+        node_index = bp_tree.postorderselect(i)
+        #print(i, node_index, bp_tree.name(node_index), bp_tree.isleaf_(node_index), bp_tree.left_child(node_index), bp_tree.right_child(node_index))
+        _set_intermediate_score(node_index, score_stack, index_counts, otu_map, bp_tree)
+        
+    return score_stack[0][0]
 
 @experimental(as_of="0.4.1")
 def faith_pd(counts, otu_ids, tree, validate=True):

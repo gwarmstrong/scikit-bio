@@ -58,7 +58,7 @@ Functions
 
 from ._ace import ace
 from ._chao1 import chao1, chao1_ci
-from ._faith_pd import faith_pd
+from ._faith_pd import faith_pd, fast_faith_pd_prototype
 from ._base import (
     berger_parker_d, brillouin_d, dominance, doubles, enspie,
     esty_ci, fisher_alpha, goods_coverage, heip_e, kempton_taylor_q,

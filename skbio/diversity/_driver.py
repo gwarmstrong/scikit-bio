@@ -14,7 +14,8 @@ import sklearn.metrics
 import pandas as pd
 
 import skbio
-from skbio.diversity.alpha._faith_pd import _faith_pd, _setup_faith_pd
+from skbio.diversity.alpha._faith_pd import (
+    _faith_pd, _setup_faith_pd, fast_faith_pd_prototype)
 from skbio.diversity.beta._unifrac import (
     _setup_multiple_unweighted_unifrac, _setup_multiple_weighted_unifrac,
     _normalize_weighted_unifrac_by_default)
@@ -170,6 +171,10 @@ def alpha_diversity(metric, counts, ids=None, validate=True, **kwargs):
             counts, otu_ids, tree, validate, single_sample=False)
         counts = counts_by_node
         metric = functools.partial(_faith_pd, branch_lengths=branch_lengths)
+    elif metric == 'fast_faith_pd':
+        otu_ids, tree, kwargs = _get_phylogenetic_kwargs(counts, **kwargs)
+        scores = fast_faith_pd_prototype(counts, otu_ids, tree, validate)
+        results = [score for score in scores]
     elif callable(metric):
         metric = functools.partial(metric, **kwargs)
     elif metric in metric_map:
@@ -178,7 +183,8 @@ def alpha_diversity(metric, counts, ids=None, validate=True, **kwargs):
         raise ValueError('Unknown metric provided: %r.' % metric)
 
     # kwargs is provided here so an error is raised on extra kwargs
-    results = [metric(c, **kwargs) for c in counts]
+    if metric!='fast_faith_pd':
+        results = [metric(c, **kwargs) for c in counts]
     return pd.Series(results, index=ids)
 
 
