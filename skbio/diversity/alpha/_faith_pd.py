@@ -23,11 +23,14 @@ def _set_intermediate_score(node_index, score_stack, index_counts, otu_map, bp_t
     """
     branch_length = bp_tree.length(node_index)
     # if leaf, return count at leaf
-    if bp_tree.isleaf_(node_index):
-        otu_name = bp_tree.name(node_index)
+    otu_name = bp_tree.name(node_index)
+    if otu_name in otu_map and bp_tree.isleaf_(node_index):
         otu_index = otu_map[otu_name]
         counts = index_counts(otu_index)
         scores = (counts > 0)*branch_length
+    elif bp_tree.isleaf_(node_index):
+        counts = 0 * index_counts(0)
+        scores = 0 * index_counts(0)
     else:
         # grabs left child's scores and counts
         left_child = bp_tree.left_child(node_index)
@@ -43,7 +46,7 @@ def _set_intermediate_score(node_index, score_stack, index_counts, otu_map, bp_t
     score_stack[node_index] = scores, counts
     return score_stack
 
-def fast_faith_pd_prototype(counts, otu_ids, tree, validate=True):
+def fast_faith_pd_prototype(counts, otu_ids, tree, validate=True, shear=False):
     """
     TODO: DOCUMENT
     """
@@ -65,7 +68,8 @@ def fast_faith_pd_prototype(counts, otu_ids, tree, validate=True):
     # it should do the proper task
     # maybe some condition on when to shear? e.g. len(otu_ids) < 0.1 * bp_tree.ntips
     # a user option to shear could be another option
-    bp_tree = bp_tree.shear(set(otu_ids))
+    if shear:
+        bp_tree = bp_tree.shear(set(otu_ids))
     
     num_nodes = len(bp_tree)
     

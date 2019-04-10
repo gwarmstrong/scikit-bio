@@ -173,7 +173,7 @@ def alpha_diversity(metric, counts, ids=None, validate=True, **kwargs):
         metric = functools.partial(_faith_pd, branch_lengths=branch_lengths)
     elif metric == 'fast_faith_pd':
         otu_ids, tree, kwargs = _get_phylogenetic_kwargs(counts, **kwargs)
-        scores = fast_faith_pd_prototype(counts, otu_ids, tree, validate)
+        scores = fast_faith_pd_prototype(counts, otu_ids, tree, validate, **kwargs)
         results = [score for score in scores]
     elif callable(metric):
         metric = functools.partial(metric, **kwargs)
